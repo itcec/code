@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dart Code Keyword Categorizer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="container">
+        <!-- Alert Box -->
+        <div id="alertBox"></div>
+
+        <!-- Top Controls Bar -->
+        <div id="topBar" class="top-bar">
+            <div class="top-bar-left">
+                <h1 class="app-title">Dart Code Keyword Categorizer</h1>
+            </div>
+            <div class="top-bar-right">
+                <button id="themeToggleBtn" class="btn btn-icon" title="Toggle Dark/Light Theme">🌙</button>
+                <button id="helpBtn" class="btn btn-icon" title="Keyboard Shortcuts">?</button>
+                <button id="statsBtn" class="btn btn-icon" title="View Statistics">📊</button>
+            </div>
+        </div>
+
+        <!-- Student Section -->
+        <div class="section-card" id="studentSection">
+            <div class="section-header">Student Information</div>
+            <div class="input-row">
+                <div class="input-wrapper">
+                    <label for="studentName">Complete Name <span class="required">*</span></label>
+                    <input type="text" id="studentName" placeholder="Enter your full name" autocomplete="off">
+                </div>
+            </div>
+        </div>
+
+        <!-- Keyword & Category - 2 Column Grid -->
+        <div class="input-grid">
+            <!-- Keyword Section -->
+            <div class="section-card" id="keywordSection">
+                <div class="section-header">Keyword List</div>
+                <textarea id="keywordInput" placeholder="Enter keywords (space, comma, or line separated)&#10;Example: var final const class void" rows="4"></textarea>
+                <small style="color: #888; font-size: 11px; margin-top: 4px;">✓ Separators: space, comma, newline</small>
+            </div>
+
+            <!-- Category Manager Section -->
+            <div class="section-card" id="categorySection">
+                <div class="section-header">Category Manager</div>
+                <div class="category-form">
+                    <div class="input-wrapper" style="flex: 1;">
+                        <label for="categoryName">Name</label>
+                        <input type="text" id="categoryName" placeholder="e.g., Variables">
+                    </div>
+                    <div class="input-wrapper" style="flex: 1;">
+                        <label for="categoryMinCount">Min Count</label>
+                        <input type="number" id="categoryMinCount" placeholder="1" value="1" min="1">
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-wrapper">
+                        <label for="categoryKeywords">Keywords</label>
+                        <textarea id="categoryKeywords" placeholder="var final const" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button id="addCategoryBtn" class="btn btn-success btn-small">+ ADD</button>
+                    <button id="undoBtn" class="btn btn-secondary btn-small" title="Ctrl+Z">↶ UNDO</button>
+                    <button id="redoBtn" class="btn btn-secondary btn-small" title="Ctrl+Y">↷ REDO</button>
+                    <button id="clearCategoriesBtn" class="btn btn-danger btn-small">CLEAR</button>
+                </div>
+
+                <!-- Quick Templates -->
+                <div class="template-section">
+                    <label>Quick Templates:</label>
+                    <div class="template-buttons">
+                        <button id="templateOOPBtn" class="btn btn-small">OOP</button>
+                        <button id="templateControlBtn" class="btn btn-small">Control Flow</button>
+                        <button id="templateTypeBtn" class="btn btn-small">Types</button>
+                        <button id="templateFuncBtn" class="btn btn-small">Functions</button>
+                    </div>
+                </div>
+
+                <!-- Categories List -->
+                <div id="categoriesList" class="categories-list"></div>
+            </div>
+        </div>
+
+        <!-- Code & Results - 2 Column Grid -->
+        <div class="main-grid">
+            <!-- Code Section -->
+            <div class="section-card" id="codeSection">
+                <div class="section-header">
+                    Dart Code Input
+                    <button id="copyCodeBtn" class="btn btn-small btn-secondary" title="Copy to clipboard">COPY</button>
+                </div>
+                <textarea id="dartCode" placeholder="Paste code here or drag & drop .dart/.txt files" spellcheck="false"></textarea>
+                
+                <!-- Code Stats -->
+                <div class="code-stats">
+                    <span>Lines: <strong id="lineCount">0</strong></span>
+                    <span>Words: <strong id="wordCount">0</strong></span>
+                    <span>Chars: <strong id="charCount">0</strong></span>
+                    <span>Matches: <strong id="matchCount">0</strong></span>
+                </div>
+
+                <div class="button-group">
+                    <button id="checkCodeBtn" class="btn btn-primary btn-small">CHECK CODE</button>
+                    <button id="clearCodeBtn" class="btn btn-secondary btn-small">CLEAR</button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="section-card" id="resultSection">
+                <div class="section-header">
+                    Results & Scoring
+                    <div class="result-controls" style="gap: 6px;">
+                        <label for="categoryFilter" style="margin: 0;">Filter:</label>
+                        <select id="categoryFilter" style="padding: 4px 8px; font-size: 11px;">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="resultPanel" class="result-panel">
+                    <div class="result-empty">Configure categories and check code to see results</div>
+                </div>
+
+                <!-- Manual Score Section -->
+                <div id="manualScoreSection" class="manual-score-section" style="display: none;">
+                    <label for="manualScore">Manual Adjustment:</label>
+                    <input type="number" id="manualScore" placeholder="±0" min="-100" max="100" value="0">
+                </div>
+
+                <!-- Database Buttons -->
+                <div id="dbButtonGroup" class="button-group" style="display: none; margin-top: 10px;">
+                    <button id="saveToDbBtn" class="btn btn-success btn-small">💾 SAVE</button>
+                    <button id="showListBtn" class="btn btn-primary btn-small">📋 LIST</button>
+                    <button id="exportCSVBtn" class="btn btn-secondary btn-small">CSV</button>
+                    <button id="exportPDFBtn" class="btn btn-secondary btn-small">PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Modal -->
+    <div id="statsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Statistics</h2>
+                <button class="modal-close" id="statsCloseBtn" aria-label="Close">&times;</button>
+            </div>
+            <div id="statsBody" class="modal-body stats-body"></div>
+            <div class="modal-footer">
+                <button class="btn btn-primary btn-small" id="statsDoneBtn">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results List Modal -->
+    <div id="listModal" class="modal">
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h2>Results History</h2>
+                <button class="modal-close" id="listCloseBtn" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-search">
+                <input type="text" id="resultSearch" placeholder="Search by name..." class="search-input">
+                <select id="sortResults" class="sort-select">
+                    <option value="date-desc">Latest First</option>
+                    <option value="date-asc">Oldest First</option>
+                    <option value="name">Name (A-Z)</option>
+                    <option value="score-desc">Highest Score</option>
+                    <option value="score-asc">Lowest Score</option>
+                </select>
+            </div>
+            <div id="modalBody" class="modal-body"></div>
+            <div class="modal-footer">
+                <button id="deleteListBtn" class="btn btn-danger btn-small">DELETE ALL</button>
+                <button class="btn btn-primary btn-small" id="listDoneBtn">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content modal-help">
+            <div class="modal-header">
+                <h2>Keyboard Shortcuts</h2>
+                <button class="modal-close" id="helpCloseBtn" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="shortcuts-grid">
+                    <div class="shortcut-item">
+                        <kbd>Ctrl</kbd> + <kbd>Enter</kbd>
+                        <span>Check Code</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>Ctrl</kbd> + <kbd>Z</kbd>
+                        <span>Undo</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>Ctrl</kbd> + <kbd>Y</kbd>
+                        <span>Redo</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>Ctrl</kbd> + <kbd>L</kbd>
+                        <span>Focus Code</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>Tab</kbd>
+                        <span>Navigate</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>Escape</kbd>
+                        <span>Close Modal</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary btn-small" id="helpDoneBtn">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
