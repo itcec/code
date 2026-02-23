@@ -61,10 +61,11 @@ const categoryName = document.getElementById('categoryName');
 const categoryKeywords = document.getElementById('categoryKeywords');
 const categoryMinCount = document.getElementById('categoryMinCount');
 const addCategoryBtn = document.getElementById('addCategoryBtn');
+const viewCategoriesBtn = document.getElementById('viewCategoriesBtn');
 const undoBtn = document.getElementById('undoBtn');
 const redoBtn = document.getElementById('redoBtn');
 const clearCategoriesBtn = document.getElementById('clearCategoriesBtn');
-const categoriesList = document.getElementById('categoriesList');
+const categoryCount = document.getElementById('categoryCount');
 const dartCode = document.getElementById('dartCode');
 const checkCodeBtn = document.getElementById('checkCodeBtn');
 const clearCodeBtn = document.getElementById('clearCodeBtn');
@@ -81,6 +82,12 @@ const categoryFilter = document.getElementById('categoryFilter');
 const themeToggleBtn = document.getElementById('themeToggleBtn');
 const helpBtn = document.getElementById('helpBtn');
 const statsBtn = document.getElementById('statsBtn');
+
+// Modals
+const categoriesModal = document.getElementById('categoriesModal');
+const categoriesCloseBtn = document.getElementById('categoriesCloseBtn');
+const categoriesDoneBtn = document.getElementById('categoriesDoneBtn');
+const categoriesModalBody = document.getElementById('categoriesModalBody');
 const listModal = document.getElementById('listModal');
 const helpModal = document.getElementById('helpModal');
 const statsModal = document.getElementById('statsModal');
@@ -213,6 +220,8 @@ function loadTemplate(key) {
     });
     
     saveToHistory();
+    renderCategories();
+    updateCategoryFilter();
     showAlert(`✓ Loaded template: ${template.name}`);
 }
 
@@ -248,6 +257,8 @@ function addCategory() {
     categoryKeywords.value = '';
     categoryMinCount.value = '1';
     categoryName.focus();
+    renderCategories();
+    updateCategoryFilter();
     showAlert('✓ Category added successfully');
     updateCodeStats();
 }
@@ -255,25 +266,65 @@ function addCategory() {
 function removeCategory(index) {
     categories.splice(index, 1);
     saveToHistory();
+    renderCategories();
+    updateCategoryFilter();
 }
 
 function renderCategories() {
-    categoriesList.innerHTML = '';
-    if (categories.length === 0) return;
+    // No longer rendering inline list, using modal instead
+    updateCategoryCount();
+}
 
+function updateCategoryCount() {
+    categoryCount.textContent = categories.length;
+}
+
+function populateCategoriesModal() {
+    categoriesModalBody.innerHTML = '';
+    
+    if (categories.length === 0) {
+        categoriesModalBody.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No categories added yet</p>';
+        return;
+    }
+
+    const table = document.createElement('table');
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    table.innerHTML = `
+        <thead>
+            <tr style="border-bottom: 2px solid #ddd;">
+                <th style="text-align: left; padding: 10px; font-weight: 600;">Category</th>
+                <th style="text-align: left; padding: 10px; font-weight: 600;">Keywords</th>
+                <th style="text-align: center; padding: 10px; font-weight: 600;">Min</th>
+                <th style="text-align: center; padding: 10px; width: 50px;">Action</th>
+            </tr>
+        </thead>
+        <tbody id="categoriesTableBody"></tbody>
+    `;
+    
+    const tbody = table.querySelector('#categoriesTableBody');
     categories.forEach((category, index) => {
-        const tag = document.createElement('div');
-        tag.className = 'category-tag';
-        tag.innerHTML = `
-            <div class="category-tag-content">
-                <div class="category-tag-name">${escapeHtml(category.name)}</div>
-                <div class="category-tag-keywords">${escapeHtml(category.keywords.join(', '))}</div>
-                <div class="category-tag-mincount">Min: ${category.minRequired}</div>
-            </div>
-            <button class="btn btn-danger" onclick="removeCategory(${index})" style="padding: 4px 6px; font-size: 10px;">✕</button>
+        const row = document.createElement('tr');
+        row.style.borderBottom = '1px solid #eee';
+        row.innerHTML = `
+            <td style="padding: 10px; font-weight: 500;">${escapeHtml(category.name)}</td>
+            <td style="padding: 10px; font-size: 12px; color: #666;">${escapeHtml(category.keywords.join(', '))}</td>
+            <td style="padding: 10px; text-align: center; font-weight: 500;">${category.minRequired}</td>
+            <td style="padding: 10px; text-align: center;">
+                <button class="btn btn-danger" onclick="deleteCategoryFromModal(${index})" style="padding: 4px 8px; font-size: 12px;">Delete</button>
+            </td>
         `;
-        categoriesList.appendChild(tag);
+        tbody.appendChild(row);
     });
+    
+    categoriesModalBody.appendChild(table);
+}
+
+function deleteCategoryFromModal(index) {
+    if (confirm(`Are you sure you want to delete "${categories[index].name}"?`)) {
+        removeCategory(index);
+        populateCategoriesModal();
+    }
 }
 
 function updateCategoryFilter() {
@@ -735,8 +786,9 @@ clearCategoriesBtn.addEventListener('click', () => {
         categories = [];
         categoryHistory = [];
         historyIndex = -1;
-        categoriesList.innerHTML = '';
+        renderCategories();
         updateCategoryFilter();
+        populateCategoriesModal();
         showAlert('✓ All categories cleared');
     }
 });
@@ -803,6 +855,12 @@ listCloseBtn.addEventListener('click', () => listModal.classList.remove('show'))
 listDoneBtn.addEventListener('click', () => listModal.classList.remove('show'));
 helpCloseBtn.addEventListener('click', () => helpModal.classList.remove('show'));
 helpDoneBtn.addEventListener('click', () => helpModal.classList.remove('show'));
+categoriesCloseBtn.addEventListener('click', () => categoriesModal.classList.remove('show'));
+categoriesDoneBtn.addEventListener('click', () => categoriesModal.classList.remove('show'));
+viewCategoriesBtn.addEventListener('click', () => {
+    populateCategoriesModal();
+    categoriesModal.classList.add('show');
+});
 
 deleteListBtn.addEventListener('click', deleteAllWithConfirmation);
 resultSearch.addEventListener('input', filterAndSortResults);
@@ -822,6 +880,7 @@ document.addEventListener('keydown', e => {
         statsModal.classList.remove('show');
         listModal.classList.remove('show');
         helpModal.classList.remove('show');
+        categoriesModal.classList.remove('show');
     }
     
     if (e.ctrlKey) {
@@ -844,6 +903,7 @@ document.addEventListener('click', (e) => {
     if (e.target === statsModal) statsModal.classList.remove('show');
     if (e.target === listModal) listModal.classList.remove('show');
     if (e.target === helpModal) helpModal.classList.remove('show');
+    if (e.target === categoriesModal) categoriesModal.classList.remove('show');
 });
 
 // ======================== Initialization ========================
