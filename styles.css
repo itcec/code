@@ -36,6 +36,7 @@ body.dark-mode {
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
     border: 1px solid #e8eef5;
     transition: all 0.3s ease;
+    flex-shrink: 0;
 }
 
 body.dark-mode .top-bar {
@@ -88,6 +89,10 @@ body.dark-mode .section-card {
 
 body.dark-mode .section-card:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+#studentSection {
+    flex-shrink: 0;
 }
 
 .section-header {
@@ -207,6 +212,26 @@ body.dark-mode textarea::placeholder {
     grid-template-columns: 1fr 1fr;
     gap: 10px;
     flex-shrink: 0;
+    max-height: 35vh;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.input-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.input-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.input-grid::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+
+body.dark-mode .input-grid::-webkit-scrollbar-thumb {
+    background: #555;
 }
 
 .category-form {
@@ -317,7 +342,8 @@ body.dark-mode .category-tag-mincount {
     display: grid;
     grid-template-columns: 1.2fr 0.8fr;
     gap: 10px;
-    flex: 1;
+    flex-shrink: 0;
+    height: 40vh;
     overflow: hidden;
 }
 
